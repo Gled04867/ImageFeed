@@ -16,7 +16,6 @@ class ProfileViewController: UIViewController {
         setupLoginLabel()
         setupStatusLabel()
         setupButton()
-        
     }
     
     
