@@ -1,4 +1,5 @@
 import UIKit
+import ProgressHUD
 
 final class AuthViewController: UIViewController {
     
@@ -39,7 +40,12 @@ extension AuthViewController: WebViewControllerDelegate {
     func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String) {
         navigationController?.popViewController(animated: true)
         
+        UnblockingProgressHUD.show()
+        
         oAuth2Service.fetchOAuthToken(code: code) { [weak self] result in
+            
+            UnblockingProgressHUD.dismiss()
+            
             guard let self else { return }
             
             switch result {
@@ -47,10 +53,22 @@ extension AuthViewController: WebViewControllerDelegate {
                 self.delegate?.didAuthenticate(self)
             case .failure(let error):
                 print("Не удалось получить токен \(error.localizedDescription)")
+                showAuthErrorAlert()
             }
         }
     }
     func webViewViewControllerDidCancel(_ vc: WebViewViewController) {
         vc.dismiss(animated: true)
+    }
+}
+
+extension AuthViewController {
+    func showAuthErrorAlert() {
+        let alert = UIAlertController(
+            title: "Что-то пошло не так",
+            message: "Не удалось войти в систему",
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 }

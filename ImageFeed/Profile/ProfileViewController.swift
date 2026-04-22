@@ -1,4 +1,5 @@
 import UIKit
+import Kingfisher
 
 final class ProfileViewController: UIViewController {
     
@@ -7,21 +8,89 @@ final class ProfileViewController: UIViewController {
     private lazy var loginLabel = UILabel()
     private lazy var statusLabel = UILabel()
     private lazy var button = UIButton(type: .system)
+    private let profileService = ProfileService.shared
+    private let profileImageService = ProfileImageService.shared
+    private let tokenStorage = OAuth2TokenStorage.shared
+    private var profileImageServiceObserver: NSObjectProtocol?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        view.backgroundColor = UIColor(named: "YP Black")
         setupImage()
         setupNameLabel()
         setupLoginLabel()
         setupStatusLabel()
         setupButton()
+        
+        if let profile = profileService.profile {
+            updateProfileDetails(profile: profile)
+        }
+        
+        profileImageServiceObserver = NotificationCenter.default
+            .addObserver(
+                forName: ProfileImageService.didChangeNotification,
+                object: nil,
+                queue: .main
+            ) {[weak self] _ in
+                guard let self else { return }
+                self.updateAvatar( )
+            }
+        updateAvatar()
+    }
+    
+    private func updateAvatar() {
+        guard
+            let profileImageURL = profileImageService.avatarURL,
+            let imageUrl = URL(string: profileImageURL)
+        else { return }
+        
+        print("imageUrl: \(imageUrl)")
+        let placeholderImage = UIImage(systemName: "person.circle.fill")?
+            .withTintColor(.lightGray, renderingMode: .alwaysOriginal)
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 70, weight: .regular, scale: .large))
+        let processor = RoundCornerImageProcessor(cornerRadius: 35)
+        imageView.kf.indicatorType = .activity
+        imageView.kf.setImage(
+            with: imageUrl,
+            placeholder: placeholderImage,
+            options: [.processor(processor),
+                      .scaleFactor(UIScreen.main.scale),
+                      .cacheOriginalImage,
+                      .forceRefresh]) { result in
+                      
+                          switch result {
+                          case .success(let value):
+                              //Картинка
+                              print(value.image)
+                              // Откуда картинка загружена:
+                              // - .none — из сети.
+                              // - .memory — из кэша оперативной памяти.
+                              // - .disk — из дискового кэша.
+                              print(value.cacheType)
+                              // Информация об источнике
+                              print(value.source)
+                              
+                          case .failure(let error):
+                              print(error)
+                          }
+                      }
+    }
+    
+    private func updateProfileDetails(profile: Profile) {
+        nameLabel.text = profile.name.isEmpty
+        ? "Имя не указано"
+        : profile.name
+        loginLabel.text = profile.loginName.isEmpty
+        ? "@неизвестный исполнитель"
+        : profile.loginName
+        statusLabel.text = (profile.bio?.isEmpty ?? true)
+        ? "Профиль не заполнен"
+        : profile.bio
     }
     
     
+    
     private func setupImage() {
-        imageView.image = UIImage(resource: .avatar)
-        
         imageView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(imageView)
         
