@@ -1,5 +1,5 @@
 import Foundation
 
-enum identifier {
+enum Identifier {
     static let showAuthenticationScreenSegueIdentifier = "showAuthenticationScreen"
 }
